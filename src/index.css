@@ -1,0 +1,100 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+
+@layer base {
+  :root {
+    /* ABROB-GT Brand Colors */
+    --background: 201 50% 98%;
+    --foreground: 221 98% 15%;
+    --card: 0 0% 100%;
+    --card-foreground: 221 98% 15%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 221 98% 15%;
+    --primary: 221 98% 21%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 192 98% 50%;
+    --secondary-foreground: 221 98% 21%;
+    --muted: 201 50% 90%;
+    --muted-foreground: 222 27% 56%;
+    --accent: 201 50% 90%;
+    --accent-foreground: 221 98% 21%;
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 100%;
+    --warning: 45 100% 60%;
+    --warning-foreground: 221 98% 15%;
+    --border: 222 25% 85%;
+    --input: 222 25% 85%;
+    --ring: 192 98% 50%;
+    --radius: 0.75rem;
+    
+    /* Status Colors */
+    --success: 158 72% 39%;
+    --success-foreground: 0 0% 100%;
+    --info: 192 98% 50%;
+    --info-foreground: 221 98% 21%;
+    
+    /* Alert Severity Colors */
+    --alert-low: 222 27% 56%;
+    --alert-medium: 45 100% 60%;
+    --alert-high: 25 95% 53%;
+    --alert-critical: 0 84% 60%;
+    
+    /* Device Status Colors */
+    --status-online: 158 72% 39%;
+    --status-offline: 222 27% 56%;
+    --status-maintenance: 45 100% 60%;
+    
+    /* Gradients */
+    --gradient-primary: linear-gradient(135deg, hsl(221, 98%, 21%), hsl(222, 27%, 56%));
+    --gradient-secondary: linear-gradient(135deg, hsl(192, 98%, 50%), hsl(193, 99%, 43%));
+    --gradient-hero: linear-gradient(135deg, hsl(221, 98%, 21%) 0%, hsl(193, 99%, 43%) 100%);
+    --gradient-card: linear-gradient(145deg, hsl(0, 0%, 100%) 0%, hsl(201, 50% , 93%) 100%);
+  }
+
+  .dark {
+    --background: 221 98% 8%;
+    --foreground: 0 0% 98%;
+    --card: 221 98% 12%;
+    --card-foreground: 0 0% 98%;
+    --popover: 221 98% 10%;
+    --popover-foreground: 0 0% 98%;
+    --primary: 192 98% 50%;
+    --primary-foreground: 221 98% 8%;
+    --secondary: 221 98% 21%;
+    --secondary-foreground: 0 0% 100%;
+    --muted: 222 27% 20%;
+    --muted-foreground: 222 27% 70%;
+    --accent: 222 27% 20%;
+    --accent-foreground: 192 98% 50%;
+    --border: 222 27% 25%;
+    --input: 222 27% 25%;
+    --ring: 192 98% 50%;
+    --gradient-card: linear-gradient(145deg, hsl(221, 98%, 12%) 0%, hsl(221, 98%, 15%) 100%);
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground;
+    font-feature-settings: "rlig" 1, "calt" 1;
+  }
+}
+
+@layer components {
+  .gradient-primary {
+    background: var(--gradient-primary);
+  }
+  
+  .gradient-secondary {
+    background: var(--gradient-secondary);
+  }
+  
+  .gradient-hero {
+    background: var(--gradient-hero);
+  }
+}
