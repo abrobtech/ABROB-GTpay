@@ -1,237 +1,60 @@
-import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useMemo, useState } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
+import { Activity, ArrowUpRight, Bell, ChevronDown, CircleHelp, Cpu, Gauge, Layers3, LogOut, MapPin, Menu, MoreHorizontal, Radio, Search, Settings, ShieldCheck, Sparkles, Wifi, X } from 'lucide-react';
+import { Area, AreaChart, Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis } from 'recharts';
 import { useAuth } from '@/hooks/useFirebaseAuth';
-import { useFirebaseData, Device } from '@/hooks/useFirebaseData';
-import Header from '@/components/layout/Header';
-import Sidebar from '@/components/layout/Sidebar';
-import Map from '@/components/dashboard/Map';
-import DevicesSidebar from '@/components/dashboard/DevicesSidebar';
-import { useToast } from '@/hooks/use-toast';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { Activity, Battery, Shield, MapPin } from 'lucide-react';
+import { Alert, Device, useFirebaseData } from '@/hooks/useFirebaseData';
+
+type Tone = 'cyan' | 'violet' | 'green' | 'amber';
+const navigation = [
+  { label: 'Dashboard', path: '/dashboard', icon: Layers3 },
+  { label: 'Devices', path: '/devices', icon: Cpu },
+  { label: 'AI Patterns', path: '/patterns', icon: Activity },
+  { label: 'Alerts & Incidents', path: '/alerts', icon: Bell },
+  { label: 'Geofences & Rules', path: '/geofences', icon: MapPin },
+  { label: 'History & Playback', path: '/history', icon: Gauge },
+];
+
+function MetricCard({ label, value, subtext, icon: Icon, tone }: { label: string; value: string; subtext: string; icon: typeof Activity; tone: Tone }) {
+  return <div className="glass-card group relative overflow-hidden p-5 transition duration-300 hover:-translate-y-1 hover:border-white/20"><div className={`metric-glow metric-${tone}`} /><div className="relative flex items-start justify-between"><div><p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-400">{label}</p><p className="mt-3 text-3xl font-semibold tracking-tight text-white">{value}</p><p className="mt-2 text-xs text-slate-500">{subtext}</p></div><div className={`metric-icon metric-icon-${tone}`}><Icon className="h-5 w-5" /></div></div></div>;
+}
+
+function formatAlert(alert: Alert) {
+  const date = new Date(alert.timestamp);
+  return Number.isNaN(date.getTime()) ? 'Recently' : date.toLocaleString(undefined, { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
+}
+
+function deviceStatus(device: Device) {
+  return device.status === 'active' || device.status === 'online' ? 'online' : 'offline';
+}
 
 export default function Dashboard() {
-  const { user } = useAuth();
-  const { devices, locations, loading, refetch } = useFirebaseData();
-  const { toast } = useToast();
+  const { user, logout } = useAuth();
+  const { devices, locations, geofences, alerts, loading, error } = useFirebaseData();
   const navigate = useNavigate();
-  const [selectedDevice, setSelectedDevice] = useState<Device | null>(null);
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
-  const [devicesSidebarCollapsed, setDevicesSidebarCollapsed] = useState(false);
-  const [activeView, setActiveView] = useState('dashboard');
+  const [mobileOpen, setMobileOpen] = useState(false);
+  const [deviceQuery, setDeviceQuery] = useState('');
+  const onlineDevices = devices.filter((device) => deviceStatus(device) === 'online');
+  const activeAlerts = alerts.filter((alert) => !alert.acknowledged);
+  const lowBattery = devices.filter((device) => (device.batteryPercentage ?? device.batteryLevel ?? 100) < 20);
+  const filteredDevices = devices.filter((device) => `${device.name} ${device.imei}`.toLowerCase().includes(deviceQuery.toLowerCase()));
+  const displayName = user?.displayName?.split(' ')[0] || user?.email?.split('@')[0] || 'Operator';
+  const pulseData = useMemo(() => locations.slice(-7).map((location, index) => ({ label: new Date(location.timestamp).toLocaleDateString(undefined, { weekday: 'short' }), value: Math.round(location.speed ?? 0), signal: Math.max(0, Math.round((location.satellites ?? 0) * 10)), index })), [locations]);
+  const alertData = useMemo(() => alerts.slice(0, 7).reverse().map((alert, index) => ({ label: `${index + 1}`, value: alert.acknowledged ? 0 : 1 })), [alerts]);
+  const handleLogout = async () => { await logout(); navigate('/'); };
 
-  useEffect(() => {
-    if (devices.length > 0 && !selectedDevice) {
-      setSelectedDevice(devices[0]);
-    }
-  }, [devices, selectedDevice]);
-
-  const handleDeviceSelect = (device: Device) => {
-    setSelectedDevice(device);
-  };
-
-  // refresh every 60s to ensure latest data (RTDB listeners also update in realtime)
-  useEffect(() => {
-    if (!user) return;
-    const id = setInterval(() => {
-      refetch && refetch().catch((e) => console.error('refetch error', e));
-    }, 60_000);
-    return () => clearInterval(id);
-  }, [user, refetch]);
-
-
-  const getAlertsCount = () => {
-    return devices.filter(device => 
-      device.tamperStatus || 
-      device.jammingStatus || 
-      device.batteryPercentage < 20
-    ).length;
-  };
-
-  const handleAlertsClick = () => {
-    navigate('/alerts');
-  };
-
-  const handleNavigation = (itemId: string) => {
-    setActiveView(itemId);
-    navigate(`/${itemId === 'dashboard' ? '' : itemId}`);
-  };
-
-  if (loading) {
-    return (
-      <div className="h-screen flex items-center justify-center">
-        <div className="text-center space-y-4">
-          <div className="w-12 h-12 rounded-xl gradient-primary flex items-center justify-center mx-auto">
-            <div className="w-6 h-6 border-2 border-white border-t-transparent rounded-full animate-spin" />
-          </div>
-          <p className="text-muted-foreground">Loading dashboard...</p>
-        </div>
-      </div>
-    );
-  }
-
-  return (
-    <div className="h-screen flex flex-col">
-      <Header 
-        alertsCount={getAlertsCount()} 
-        onAlertsClick={handleAlertsClick}
-      />
-      
-      <div className="flex-1 flex overflow-hidden">
-        <Sidebar
-          collapsed={sidebarCollapsed}
-          activeItem={activeView}
-          onItemClick={handleNavigation}
-          onToggleCollapse={() => setSidebarCollapsed(!sidebarCollapsed)}
-        />
-        
-        <div className="flex-1 flex">
-          <DevicesSidebar
-            devices={devices}
-            selectedDevice={selectedDevice}
-            onDeviceSelect={handleDeviceSelect}
-            collapsed={devicesSidebarCollapsed}
-            onToggleCollapse={() => setDevicesSidebarCollapsed(!devicesSidebarCollapsed)}
-          />
-          
-          <div className="flex-1 flex flex-col">
-            {/* Dashboard Stats */}
-            <div className="p-6 space-y-6">
-              <div>
-                <h1 className="text-3xl font-bold gradient-text">Dashboard Overview</h1>
-                <p className="text-muted-foreground mt-2">Monitor your fleet and devices in real-time</p>
-              </div>
-
-              {/* Key Metrics */}
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                <Card>
-                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                    <CardTitle className="text-sm font-medium">Total Devices</CardTitle>
-                    <Activity className="h-4 w-4 text-muted-foreground" />
-                  </CardHeader>
-                  <CardContent>
-                    <div className="text-2xl font-bold">{devices.length}</div>
-                    <p className="text-xs text-muted-foreground">
-                      {devices.filter(d => d.status === 'online').length} online
-                    </p>
-                  </CardContent>
-                </Card>
-
-                <Card>
-                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                    <CardTitle className="text-sm font-medium">Active Alerts</CardTitle>
-                    <Shield className="h-4 w-4 text-muted-foreground" />
-                  </CardHeader>
-                  <CardContent>
-                    <div className="text-2xl font-bold text-destructive">{getAlertsCount()}</div>
-                    <p className="text-xs text-muted-foreground">Require attention</p>
-                  </CardContent>
-                </Card>
-
-                <Card>
-                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                    <CardTitle className="text-sm font-medium">Low Battery</CardTitle>
-                    <Battery className="h-4 w-4 text-muted-foreground" />
-                  </CardHeader>
-                  <CardContent>
-                    <div className="text-2xl font-bold text-warning">
-                      {devices.filter(d => d.batteryPercentage < 20).length}
-                    </div>
-                    <p className="text-xs text-muted-foreground">Below 20%</p>
-                  </CardContent>
-                </Card>
-
-                <Card>
-                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                    <CardTitle className="text-sm font-medium">Tracking</CardTitle>
-                    <MapPin className="h-4 w-4 text-muted-foreground" />
-                  </CardHeader>
-                  <CardContent>
-                    <div className="text-2xl font-bold text-success">
-                      {devices.filter(d => d.latitude && d.longitude).length}
-                    </div>
-                    <p className="text-xs text-muted-foreground">GPS enabled</p>
-                  </CardContent>
-                </Card>
-              </div>
-
-              {/* Recent Alerts */}
-              <Card>
-                <CardHeader>
-                  <CardTitle>Recent Alerts</CardTitle>
-                  <CardDescription>Latest alerts and incidents from your devices</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-3">
-                    {devices
-                      .filter(device => device.tamperStatus || device.jammingStatus || device.batteryPercentage < 20)
-                      .slice(0, 3)
-                      .map(device => (
-                        <div key={device.id} className="flex items-center justify-between p-3 border rounded-lg">
-                          <div className="flex items-center space-x-3">
-                            <div className="w-2 h-2 bg-destructive rounded-full" />
-                            <div>
-                              <p className="font-medium">{device.name}</p>
-                              <p className="text-sm text-muted-foreground">
-                                {device.tamperStatus && "Tamper detected"}
-                                {device.jammingStatus && "Signal jamming"}
-                                {device.batteryPercentage < 20 && `Low battery: ${device.batteryPercentage}%`}
-                              </p>
-                            </div>
-                          </div>
-                          <Badge variant="destructive">Alert</Badge>
-                        </div>
-                      ))}
-                    {devices.filter(device => device.tamperStatus || device.jammingStatus || device.batteryPercentage < 20).length === 0 && (
-                      <div className="text-center py-6 text-muted-foreground">
-                        <Shield className="h-8 w-8 mx-auto mb-2 opacity-50" />
-                        <p>No active alerts</p>
-                      </div>
-                    )}
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
-
-            {/* Map Section with device dropdown */}
-            <div className="flex-1 min-h-[400px] relative">
-              <div className="absolute top-4 right-4 z-10 w-64">
-                <select 
-                  className="w-full p-2 rounded-md border border-input bg-background text-sm shadow-sm transition-colors focus:ring-1 focus:ring-ring"
-                  value={selectedDevice?.id || ''}
-                  onChange={(e) => {
-                    const device = devices.find(d => d.id === e.target.value);
-                    if (device) handleDeviceSelect(device);
-                  }}
-                >
-                  <option value="" disabled>Select a device</option>
-                  {devices.map(device => (
-                    <option key={device.id} value={device.id}>
-                      {device.name} {device.status === 'online' ? '(Online)' : '(Offline)'}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              
-              {selectedDevice ? (
-                <Map
-                  devices={[selectedDevice].filter(d => d.latitude && d.longitude)}
-                  selectedDevice={selectedDevice}
-                  onDeviceSelect={handleDeviceSelect}
-                />
-              ) : (
-                <div className="h-full flex items-center justify-center">
-                  <div className="text-center text-muted-foreground">
-                    <p className="mb-2">No device selected</p>
-                    <p className="text-sm">Please select a device from the dropdown or Devices panel to view its location on the map.</p>
-                  </div>
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
+  return <div className="min-h-screen overflow-hidden bg-[#050816] text-slate-100"><div className="aurora aurora-one" /><div className="aurora aurora-two" /><div className="relative mx-auto flex min-h-screen max-w-[1600px]">
+    <aside className={`${mobileOpen ? 'translate-x-0' : '-translate-x-full'} fixed inset-y-0 left-0 z-40 flex w-[264px] flex-col border-r border-white/[0.08] bg-[#080c1d]/95 p-5 backdrop-blur-2xl transition-transform duration-300 lg:relative lg:translate-x-0 lg:bg-[#080c1d]/65`}>
+      <div className="flex items-center justify-between px-2"><Link to="/dashboard" className="flex items-center gap-3"><span className="brand-mark"><Sparkles className="h-5 w-5" /></span><span><span className="block text-sm font-bold tracking-[0.22em] text-white">ABROB</span><span className="block text-[10px] font-medium tracking-[0.28em] text-cyan-300">COMMAND</span></span></Link><button className="rounded-lg p-2 text-slate-400 hover:bg-white/10 lg:hidden" onClick={() => setMobileOpen(false)} aria-label="Close menu"><X className="h-5 w-5" /></button></div>
+      <div className="mt-10 flex flex-1 flex-col"><p className="sidebar-label">Workspace</p><nav className="mt-3 space-y-1">{navigation.map(({ label, path, icon: Icon }, index) => <Link key={path} to={path} className={`nav-item ${index === 0 ? 'nav-item-active' : ''}`}><Icon className="h-[18px] w-[18px]" />{label}{label === 'Devices' && <span className="nav-count">{devices.length}</span>}{label === 'Alerts & Incidents' && activeAlerts.length > 0 && <span className="nav-count nav-count-alert">{activeAlerts.length}</span>}{index === 0 && <span className="nav-pulse" />}</Link>)}</nav><p className="sidebar-label mt-9">System</p><nav className="mt-3 space-y-1"><Link to="/settings" className="nav-item"><Settings className="h-[18px] w-[18px]" />Settings</Link><button className="nav-item w-full" onClick={() => void handleLogout()}><LogOut className="h-[18px] w-[18px]" />Sign out</button></nav><div className="mt-auto rounded-2xl border border-cyan-400/15 bg-gradient-to-br from-cyan-400/10 to-violet-500/10 p-4"><div className="flex items-center justify-between"><span className="flex items-center gap-2 text-xs font-semibold text-cyan-100"><span className="live-dot" />System online</span><span className="text-[10px] text-slate-400">v2.4.0</span></div><p className="mt-3 text-xs leading-5 text-slate-400">{devices.length} device{devices.length === 1 ? '' : 's'} connected to your command center.</p><div className="mt-4 h-1.5 overflow-hidden rounded-full bg-white/10"><div className="h-full rounded-full bg-gradient-to-r from-cyan-400 to-violet-500" style={{ width: `${devices.length ? Math.min(100, Math.round((onlineDevices.length / devices.length) * 100)) : 0}%` }} /></div><p className="mt-2 text-[10px] text-slate-500">{devices.length ? Math.round((onlineDevices.length / devices.length) * 100) : 0}% network health</p></div></div>
+    </aside>
+    {mobileOpen && <button className="fixed inset-0 z-30 bg-black/60 lg:hidden" onClick={() => setMobileOpen(false)} aria-label="Close navigation overlay" />}
+    <main className="min-w-0 flex-1 px-4 pb-8 sm:px-7 lg:px-10"><header className="flex h-[82px] items-center justify-between border-b border-white/[0.07]"><div className="flex items-center gap-3"><button className="rounded-xl border border-white/10 bg-white/[0.04] p-2.5 text-slate-300 lg:hidden" onClick={() => setMobileOpen(true)} aria-label="Open menu"><Menu className="h-5 w-5" /></button><div><p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-cyan-300">Mission control</p><h1 className="mt-1 text-lg font-semibold tracking-tight text-white sm:text-xl">Good morning, {displayName} <span className="hidden sm:inline">— here's your network pulse.</span></h1></div></div><div className="flex items-center gap-2 sm:gap-4"><div className="hidden items-center gap-2 rounded-xl border border-white/10 bg-white/[0.04] px-3 py-2 text-xs text-slate-500 sm:flex"><Search className="h-4 w-4" />Search devices</div><button className="relative rounded-xl border border-white/10 bg-white/[0.04] p-2.5 text-slate-300 hover:bg-white/10" aria-label="Notifications" onClick={() => navigate('/alerts')}><Bell className="h-[18px] w-[18px]" />{activeAlerts.length > 0 && <span className="absolute right-2 top-2 h-1.5 w-1.5 rounded-full bg-cyan-300 shadow-[0_0_10px_#67e8f9]" />}</button><button className="flex items-center gap-2 rounded-xl border border-white/10 bg-white/[0.04] p-1.5 pr-3" onClick={() => navigate('/profile')}><span className="avatar-ring">{displayName.slice(0, 2).toUpperCase()}</span><span className="hidden text-xs font-medium text-white sm:block">{displayName}</span><ChevronDown className="hidden h-3.5 w-3.5 text-slate-500 sm:block" /></button></div></header>
+      <section className="relative mt-8 overflow-hidden rounded-3xl border border-cyan-300/15 bg-gradient-to-br from-[#111b3b]/90 via-[#10132d]/90 to-[#1d1238]/80 p-6 shadow-2xl shadow-cyan-950/30 sm:p-8"><div className="hero-grid" /><div className="relative z-10 max-w-xl"><div className="inline-flex items-center gap-2 rounded-full border border-cyan-300/20 bg-cyan-300/10 px-3 py-1.5 text-[10px] font-semibold uppercase tracking-[0.16em] text-cyan-200"><span className="live-dot" />Realtime intelligence active</div><h2 className="mt-5 text-3xl font-semibold leading-tight tracking-[-0.04em] text-white sm:text-4xl">Your network is moving<br /><span className="gradient-text">with precision.</span></h2><p className="mt-4 max-w-md text-sm leading-6 text-slate-400">Live visibility across every device, route, and perimeter — orchestrated from one intelligent command center.</p><div className="mt-6 flex flex-wrap gap-3"><Link to="/devices" className="glow-button"><Radio className="h-4 w-4" />Manage devices</Link><Link to="/geofences" className="ghost-button"><MapPin className="h-4 w-4" />View geofences</Link></div></div><div className="hero-orb"><div className="orb-ring orb-ring-one" /><div className="orb-ring orb-ring-two" /><div className="orb-core"><Radio className="h-8 w-8 text-cyan-200" /></div><span className="orb-label orb-label-top">{onlineDevices.length} online</span><span className="orb-label orb-label-right">{devices.length ? Math.round((onlineDevices.length / devices.length) * 100) : 0}% uptime</span><span className="orb-label orb-label-bottom">{geofences.length} zones active</span></div></section>
+      {error && <div className="mt-5 rounded-xl border border-rose-300/20 bg-rose-300/10 px-4 py-3 text-sm text-rose-200">Live data connection needs attention. The layout is ready, but some telemetry could not be loaded.</div>}
+      <section className="mt-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-4"><MetricCard label="Active devices" value={`${onlineDevices.length} / ${devices.length}`} subtext={loading ? 'Syncing telemetry…' : `${devices.length - onlineDevices.length} offline`} icon={Cpu} tone="cyan" /><MetricCard label="Network uptime" value={devices.length ? `${Math.round((onlineDevices.length / devices.length) * 100)}%` : '—'} subtext="Based on live device state" icon={Wifi} tone="green" /><MetricCard label="Active geofences" value={String(geofences.filter((zone) => zone.active).length).padStart(2, '0')} subtext={`${geofences.length} total zones`} icon={MapPin} tone="violet" /><MetricCard label="Open alerts" value={String(activeAlerts.length).padStart(2, '0')} subtext={`${lowBattery.length} low battery`} icon={Bell} tone="amber" /></section>
+      <section className="mt-6 grid gap-6 xl:grid-cols-[1.55fr_1fr]"><div className="glass-card p-5 sm:p-6"><div className="flex flex-wrap items-start justify-between gap-4"><div><div className="flex items-center gap-2"><span className="section-kicker">Network activity</span><span className="rounded-md bg-cyan-300/10 px-2 py-1 text-[10px] font-semibold text-cyan-200">Live</span></div><h3 className="mt-2 text-lg font-semibold text-white">Telemetry pulse</h3><p className="mt-1 text-xs text-slate-500">Speed and signal readings from recent device locations</p></div><button className="rounded-lg p-2 text-slate-500 hover:bg-white/10 hover:text-white" aria-label="More options"><MoreHorizontal className="h-5 w-5" /></button></div><div className="mt-6 h-[230px] w-full">{pulseData.length ? <ResponsiveContainer width="100%" height="100%"><AreaChart data={pulseData} margin={{ top: 10, right: 4, left: -24, bottom: 0 }}><defs><linearGradient id="pulseGradient" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="#22d3ee" stopOpacity={0.32} /><stop offset="100%" stopColor="#22d3ee" stopOpacity={0} /></linearGradient></defs><CartesianGrid vertical={false} stroke="rgba(148,163,184,0.09)" /><XAxis dataKey="label" axisLine={false} tickLine={false} tick={{ fill: '#64748b', fontSize: 11 }} dy={10} /><Tooltip contentStyle={{ background: '#0b1025', border: '1px solid rgba(103,232,249,.2)', borderRadius: 12, color: '#fff', fontSize: 12 }} /><Area type="monotone" dataKey="value" name="Speed" stroke="#67e8f9" strokeWidth={2.5} fill="url(#pulseGradient)" dot={false} activeDot={{ r: 5, strokeWidth: 3, stroke: '#0b1025', fill: '#67e8f9' }} /></AreaChart></ResponsiveContainer> : <div className="flex h-full flex-col items-center justify-center rounded-2xl border border-dashed border-white/10 bg-white/[0.02] text-center"><Radio className="h-7 w-7 text-slate-600" /><p className="mt-3 text-sm text-slate-400">Waiting for location telemetry</p><p className="mt-1 text-xs text-slate-600">New device readings will appear here</p></div>}</div><div className="mt-3 flex items-center gap-5 text-[11px] text-slate-500"><span className="flex items-center gap-2"><span className="h-2 w-2 rounded-full bg-cyan-300" />Live speed readings</span><span className="flex items-center gap-2"><span className="h-2 w-2 rounded-full bg-violet-400" />GPS signal quality</span></div></div><div className="glass-card p-5 sm:p-6"><div className="flex items-center justify-between"><div><span className="section-kicker">Incidents</span><h3 className="mt-2 text-lg font-semibold text-white">Alert activity</h3></div><button className="rounded-lg p-2 text-slate-500 hover:bg-white/10 hover:text-white" aria-label="More options"><MoreHorizontal className="h-5 w-5" /></button></div><div className="mt-5 h-[185px]">{alertData.length ? <ResponsiveContainer width="100%" height="100%"><BarChart data={alertData} margin={{ top: 5, right: 0, left: -28, bottom: 0 }}><CartesianGrid vertical={false} stroke="rgba(148,163,184,0.07)" /><XAxis dataKey="label" axisLine={false} tickLine={false} tick={{ fill: '#64748b', fontSize: 10 }} dy={8} /><Tooltip cursor={{ fill: 'rgba(167,139,250,.05)' }} contentStyle={{ background: '#0b1025', border: '1px solid rgba(167,139,250,.2)', borderRadius: 12, color: '#fff', fontSize: 12 }} /><Bar dataKey="value" name="Open alert" fill="#a78bfa" radius={[4, 4, 0, 0]} barSize={13} /></BarChart></ResponsiveContainer> : <div className="flex h-full items-center justify-center rounded-2xl border border-dashed border-white/10 bg-white/[0.02] text-xs text-slate-600">No alert history yet</div>}</div><div className="mt-4 flex items-center justify-between border-t border-white/[0.07] pt-4"><div><p className="text-2xl font-semibold text-white">{activeAlerts.length}</p><p className="mt-1 text-[11px] text-slate-500">Requires attention</p></div><div className="rounded-xl bg-violet-400/10 px-3 py-2 text-right"><p className="text-xs font-semibold text-violet-300">{activeAlerts.length ? 'Review now' : 'All clear'}</p><p className="mt-1 text-[10px] text-slate-500">Live incident state</p></div></div></div></section>
+      <section className="mt-6 grid gap-6 lg:grid-cols-[1.2fr_1fr]"><div className="glass-card p-5 sm:p-6"><div className="flex items-center justify-between"><div><span className="section-kicker">Fleet state</span><h3 className="mt-2 text-lg font-semibold text-white">Connected devices</h3></div><div className="relative hidden sm:block"><Search className="pointer-events-none absolute left-3 top-2.5 h-4 w-4 text-slate-600" /><input value={deviceQuery} onChange={(event) => setDeviceQuery(event.target.value)} placeholder="Search devices" className="w-40 rounded-lg border border-white/10 bg-white/[0.04] py-2 pl-9 pr-3 text-xs text-slate-200 outline-none placeholder:text-slate-600 focus:border-cyan-300/40" /></div></div><div className="mt-5 space-y-3">{loading ? <div className="rounded-2xl border border-white/[0.06] bg-white/[0.025] p-4 text-sm text-slate-500">Syncing devices…</div> : filteredDevices.length ? filteredDevices.slice(0, 4).map((device) => <div key={device.id} className="flex items-center gap-3 rounded-2xl border border-white/[0.06] bg-white/[0.025] p-3"><div className="activity-icon activity-cyan"><Radio className="h-4 w-4" /></div><div className="min-w-0 flex-1"><p className="truncate text-sm font-medium text-slate-200">{device.name}</p><p className="mt-1 truncate text-[11px] text-slate-500">{device.location || device.imei || 'No location label'}</p></div><div className="text-right"><p className="flex items-center justify-end gap-1.5 text-xs font-medium text-emerald-300"><span className="live-dot" />{deviceStatus(device)}</p><p className="mt-1 text-[10px] text-slate-600">{device.batteryPercentage ?? device.batteryLevel ?? 0}% battery</p></div></div>) : <div className="rounded-2xl border border-dashed border-white/10 p-5 text-center text-xs text-slate-600">No devices match this view.</div>}</div></div><div className="glass-card p-5 sm:p-6"><div className="flex items-center justify-between"><div><span className="section-kicker">Live feed</span><h3 className="mt-2 text-lg font-semibold text-white">Recent alerts</h3></div><Link to="/alerts" className="text-xs font-medium text-cyan-300 hover:text-cyan-200">View all <ArrowUpRight className="ml-1 inline h-3.5 w-3.5" /></Link></div><div className="mt-5 space-y-3">{activeAlerts.slice(0, 3).map((alert) => <div key={alert.id || alert.timestamp} className="flex items-center gap-3 rounded-2xl border border-amber-300/10 bg-amber-300/[0.035] p-3"><div className="activity-icon activity-amber"><Bell className="h-4 w-4" /></div><div className="min-w-0 flex-1"><p className="truncate text-sm font-medium text-slate-200">{alert.message || `${alert.type} incident`}</p><p className="mt-1 text-[11px] text-slate-500">{alert.deviceId} · {formatAlert(alert)}</p></div><span className="rounded-md bg-amber-300/10 px-2 py-1 text-[10px] font-semibold text-amber-300">Open</span></div>)}{activeAlerts.length === 0 && <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-white/10 py-8 text-center"><ShieldCheck className="h-8 w-8 text-emerald-300/70" /><p className="mt-3 text-sm text-slate-300">No open alerts</p><p className="mt-1 text-xs text-slate-600">Your network is operating quietly.</p></div>}</div></div></section>
+      <footer className="mt-7 flex flex-wrap items-center justify-between gap-3 px-1 text-[11px] text-slate-600"><span className="flex items-center gap-2"><CircleHelp className="h-3.5 w-3.5" />ABROB intelligence layer</span><span>Telemetry is encrypted end-to-end</span></footer>
+    </main></div></div>;
 }
