@@ -11,6 +11,7 @@ import { Separator } from '@/components/ui/separator';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { User, Bell, Moon, Sun, Shield, MapPin, Zap, Laptop } from 'lucide-react';
+import TopNav from '@/components/layout/TopNav';
 
 export default function Settings() {
   const { user } = useAuth();
@@ -28,7 +29,7 @@ export default function Settings() {
   };
 
   return (
-    <div className="container py-10 space-y-8">
+    <div className="theme-page min-h-screen bg-[#050816] text-slate-100"><TopNav /><div className="container py-10 space-y-8">
       <div className="flex justify-between items-center">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Settings</h1>
@@ -366,6 +367,6 @@ export default function Settings() {
           </Card>
         </TabsContent>
       </Tabs>
-    </div>
+    </div></div>
   );
 }
