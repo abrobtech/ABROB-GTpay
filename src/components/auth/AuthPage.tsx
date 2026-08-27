@@ -63,10 +63,10 @@ export default function AuthPage() {
         <div className="text-white space-y-8 lg:pr-8">
           <div className="space-y-4">
             <div className="flex items-center space-x-3">
-              <div className="w-12 h-12 rounded-xl bg-white/20 backdrop-blur-sm flex items-center justify-center">
-                <Shield className="w-6 h-6 text-white" />
+              <div className="flex h-20 w-20 items-center justify-center rounded-2xl border border-white/20 bg-white/10 p-2 backdrop-blur-sm">
+                <img src="/GTpay_logo.png" alt="ABROB-GTpay logo" className="h-full w-full object-contain" />
               </div>
-              <h1 className="text-4xl font-bold">ABROB-GT</h1>
+              <div><h1 className="text-4xl font-bold">ABROB-GTpay</h1><p className="text-xs font-semibold uppercase tracking-[0.2em] text-cyan-200">Command center</p></div>
             </div>
             <p className="text-xl text-white/90">AI-powered, self-defending GPS tracking</p>
             <p className="text-lg text-white/80 leading-relaxed">
