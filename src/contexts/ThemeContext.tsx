@@ -20,7 +20,7 @@ function applyTheme(theme: Theme) {
 export function ThemeProvider({ children }: { children: ReactNode }) {
   const [theme, setThemeState] = useState<Theme>(() => {
     if (typeof window === 'undefined') return 'dark';
-    return window.localStorage.getItem(STORAGE_KEY) === 'light' ? 'light' : 'dark';
+    return window.localStorage.getItem(STORAGE_KEY) === 'dark' ? 'dark' : 'light';
   });
 
   useEffect(() => {

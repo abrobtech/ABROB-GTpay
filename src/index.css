@@ -75,7 +75,7 @@
 @media (min-width: 640px) { .topnav-wrap { padding-left: 26px; padding-right: 26px; } }
 
 /* Light theme state */
-.light .theme-page { background: #eef4ff !important; color: #0f172a; }
+.light .theme-page { background: #ffffff !important; color: #0f172a; }
 .light .topnav { border-color: rgba(30,64,175,.12); background: rgba(255,255,255,.78); box-shadow: 0 16px 45px rgba(30,64,175,.10), inset 0 1px 0 rgba(255,255,255,.85); }
 .light .topnav-link { color: #64748b; } .light .topnav-link:hover { color: #1e293b; background: rgba(30,64,175,.06); } .light .topnav-link-active { color: #075985; background: rgba(14,165,233,.10); }
 .light .network-status, .light .theme-toggle span:last-child { color: #64748b; }
@@ -88,6 +88,6 @@
 .light .topnav-menu button, .light .topnav-mobile-link { color: #475569; } .light .topnav-menu button:hover, .light .topnav-mobile-link:hover { color: #0f172a; background: rgba(14,165,233,.08); }
 
 /* Shared semantic palette for legacy pages when the global light theme is active */
-:root.light { --background: 210 40% 98%; --foreground: 222 47% 11%; --card: 0 0% 100%; --card-foreground: 222 47% 11%; --popover: 0 0% 100%; --popover-foreground: 222 47% 11%; --primary: 196 86% 38%; --primary-foreground: 0 0% 100%; --secondary: 258 72% 55%; --secondary-foreground: 0 0% 100%; --muted: 214 32% 91%; --muted-foreground: 215 16% 42%; --accent: 214 32% 94%; --accent-foreground: 196 86% 30%; --border: 214 25% 86%; --input: 214 25% 86%; --ring: 196 86% 38%; }
-html.light { background: #eef4ff; } html.light body { background: #eef4ff; color: #0f172a; }
+:root.light { --background: 0 0% 100%; --foreground: 222 47% 11%; --card: 0 0% 100%; --card-foreground: 222 47% 11%; --popover: 0 0% 100%; --popover-foreground: 222 47% 11%; --primary: 213 76% 35%; --primary-foreground: 0 0% 100%; --secondary: 188 92% 45%; --secondary-foreground: 222 47% 11%; --muted: 214 32% 94%; --muted-foreground: 215 16% 42%; --accent: 188 86% 94%; --accent-foreground: 213 76% 30%; --border: 214 25% 86%; --input: 214 25% 86%; --ring: 188 92% 45%; }
+html.light { background: #ffffff; } html.light body { background: #ffffff; color: #0f172a; }
 .light .border-white\/\[0\.06\], .light .border-white\/\[0\.07\], .light .border-white\/\[0\.08\], .light .border-white\/\[0\.09\], .light .border-white\/10 { border-color: rgba(30,64,175,.12); }
