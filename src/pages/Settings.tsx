@@ -12,10 +12,12 @@ import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { User, Bell, Moon, Sun, Shield, MapPin, Zap, Laptop } from 'lucide-react';
 import TopNav from '@/components/layout/TopNav';
+import { useTheme } from '@/contexts/ThemeContext';
 
 export default function Settings() {
   const { user } = useAuth();
-  const [darkMode, setDarkMode] = useState(false);
+  const { theme, toggleTheme } = useTheme();
+  const darkMode = theme === 'dark';
   const [notificationsEnabled, setNotificationsEnabled] = useState(true);
   const [geofencingEnabled, setGeofencingEnabled] = useState(true);
   const [tamperAlertsEnabled, setTamperAlertsEnabled] = useState(true);
@@ -251,7 +253,7 @@ export default function Settings() {
                   </div>
                   <Switch
                     checked={darkMode}
-                    onCheckedChange={setDarkMode}
+                    onCheckedChange={toggleTheme}
                   />
                 </div>
                 
