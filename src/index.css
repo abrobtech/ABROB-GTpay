@@ -91,3 +91,21 @@
 :root.light { --background: 0 0% 100%; --foreground: 222 47% 11%; --card: 0 0% 100%; --card-foreground: 222 47% 11%; --popover: 0 0% 100%; --popover-foreground: 222 47% 11%; --primary: 213 76% 35%; --primary-foreground: 0 0% 100%; --secondary: 188 92% 45%; --secondary-foreground: 222 47% 11%; --muted: 214 32% 94%; --muted-foreground: 215 16% 42%; --accent: 188 86% 94%; --accent-foreground: 213 76% 30%; --border: 214 25% 86%; --input: 214 25% 86%; --ring: 188 92% 45%; }
 html.light { background: #ffffff; } html.light body { background: #ffffff; color: #0f172a; }
 .light .border-white\/\[0\.06\], .light .border-white\/\[0\.07\], .light .border-white\/\[0\.08\], .light .border-white\/\[0\.09\], .light .border-white\/10 { border-color: rgba(30,64,175,.12); }
+
+/* NexCare-inspired motion and interaction layer, adapted for fleet operations */
+:where(a, button, input, select, textarea):focus-visible { outline: 3px solid rgba(14,165,233,.45); outline-offset: 3px; }
+:where(button, a) { -webkit-tap-highlight-color: transparent; }
+:where(button, .glow-button, .ghost-button, .topnav-link, .theme-toggle) { transition: transform .16s cubic-bezier(.23,1,.32,1), box-shadow .2s ease, background-color .2s ease, border-color .2s ease, color .2s ease; }
+:where(button, .glow-button, .ghost-button):active { transform: scale(.97); }
+.glass-card, [data-slot="card"] { transition: transform .24s cubic-bezier(.23,1,.32,1), box-shadow .24s ease, border-color .2s ease; }
+.glass-card:hover, [data-slot="card"]:hover { transform: translateY(-2px); box-shadow: 0 22px 48px rgba(15,23,42,.10); }
+@keyframes abrob-page-enter { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes abrob-soft-pulse { 0%, 100% { opacity: .65; } 50% { opacity: 1; } }
+.theme-page main, .theme-page > .container, .h-screen.flex.flex-col > .flex-1 { animation: abrob-page-enter .42s cubic-bezier(.23,1,.32,1) both; }
+.loading-pulse { animation: abrob-soft-pulse 1.6s ease-in-out infinite; }
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; scroll-behavior: auto !important; transition-duration: .01ms !important; }
+}
+@media (max-width: 640px) {
+  .theme-page .glass-card, .h-screen.flex.flex-col [data-slot="card"] { border-radius: 1rem; }
+}
